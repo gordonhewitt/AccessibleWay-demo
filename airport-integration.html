@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>AccessibleWay 0.7.3.2 | Airport Route Integration</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#122b43;background:#f3f7fb}
+*{box-sizing:border-box}body{margin:0;font-size:16px;line-height:1.48}
+a{color:#095a9c}a:hover{text-decoration-thickness:2px}
+header{background:#08294c;color:#fff;padding:19px clamp(14px,3vw,34px)}
+header .eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#b9dfff;font-weight:750}
+header h1{font-size:clamp(1.36rem,2.5vw,1.9rem);margin:4px 0 0}
+header p{margin:6px 0 0;color:#d0e4f5;max-width:920px}
+.shell{max-width:1560px;margin:0 auto;padding:16px clamp(12px,2.5vw,28px) 32px}
+.notice{background:#fff7e7;color:#5c400c;border:1px solid #d3a75d;border-left:6px solid #b17413;border-radius:8px;padding:12px 14px;margin-bottom:15px}
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(335px,1fr);gap:15px;align-items:start}
+.panel{background:#fff;border:1px solid #c7d6e3;border-radius:12px;min-width:0;overflow:hidden;box-shadow:0 1px 4px #1a3a5310}
+.panel>.head{background:#eaf1f8;border-bottom:1px solid #c7d6e3;padding:12px 15px}
+h2{font-size:1.08rem;margin:0;color:#0b355b}.muted{color:#44627c;font-size:.89rem}
+.panel .inside{padding:15px}.head p{margin:4px 0 0;font-size:.85rem;color:#49677f}
+iframe{border:0;width:100%;display:block;background:#fff;height:760px}
+iframe.preview{height:475px;background:#0d263e}
+.controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:12px}
+button,.file-button{font:inherit;background:#0b5a95;color:#fff;border:2px solid #0b5a95;border-radius:7px;padding:8px 12px;cursor:pointer;font-weight:600}
+button.secondary{background:#fff;color:#0b4776;border-color:#9bb7cb}
+button:disabled{opacity:.5;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #e29c17;outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.kpi{background:#f3f7fb;padding:10px;border-radius:8px;border:1px solid #dbe7f0}
+.kpi strong{display:block;font-size:1rem;overflow-wrap:anywhere}.kpi span{font-size:.79rem;color:#45617a}
+.readout{padding:12px;background:#eff5fb;border-left:4px solid #2c75a5;border-radius:5px;margin:12px 0;overflow-wrap:anywhere}
+.readout:empty{display:none}
+fieldset{border:1px solid #cbdce9;border-radius:8px;margin:12px 0;padding:12px}legend{font-weight:700;padding:0 6px;color:#183d5b}
+label.fileLabel{display:block;margin-bottom:8px;font-weight:650}input[type=file]{font:inherit;width:100%;max-width:100%}
+.stats{margin:10px 0}.stats dt{font-size:.78rem;color:#476783}.stats dd{font-weight:700;margin:0 0 8px;overflow-wrap:anywhere}
+.timeline-label{font-size:.9rem;font-weight:650;display:block;margin:12px 0 5px}input[type=range]{width:100%;accent-color:#145d91}
+.windows{display:flex;align-items:end;gap:2px;width:100%;height:72px;background:#edf3f8;padding:6px;overflow:hidden;border-radius:5px}
+.windows button{flex:1;min-width:2px;border:0;border-radius:2px 2px 0 0;padding:0;opacity:.95;position:relative}
+.windows button[aria-current=true]{outline:3px solid #152e42;outline-offset:1px;z-index:1}
+.windows .stationary{background:#277c6d}.windows .moving-like{background:#2f68bb}.windows .turning-like{background:#ac6812}.windows .uncertain{background:#6f6e87}
+.legend{font-size:.75rem;color:#3e5870;display:flex;flex-wrap:wrap;gap:10px;margin:5px 0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}.dot.stationary{background:#277c6d}.dot.moving-like{background:#2f68bb}.dot.turning-like{background:#ac6812}.dot.uncertain{background:#6f6e87}
+.tag{font-weight:750;color:#0f446e;font-size:.8rem;letter-spacing:.04em}
+#evidenceInfo{white-space:pre-line}#routeMessage{white-space:pre-line}
+footer{padding-top:18px;color:#45627a;font-size:.85rem}
+summary{cursor:pointer;font-weight:650;padding:8px 0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem}
+@media(max-width:1060px){.layout{grid-template-columns:minmax(0,1fr)} iframe{height:650px}iframe.preview{height:480px}}
+@media(max-width:550px){iframe{height:720px}.kpis{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Engineering prototype · Version 0.7.3.2</div>
+  <h1>AccessibleWay — Airport Route Integration</h1>
+  <p>Connect the existing airport route candidate with sensor trajectory evidence. Route controls remain in the airport engine; motion evidence is a separate, exploratory observation stream.</p>
+</header>
+<main class="shell">
+  <div class="notice" role="note"><strong>Demonstration only.</strong> Airport connections, lifts and accessibility attributes are unverified. Motion evidence cannot establish a passenger's position, route adherence, step-free access or confidence. Do not use for live wayfinding, evacuation or assistance decisions.</div>
+  <div class="layout">
+    <section class="panel" aria-labelledby="engineHeading">
+      <div class="head"><h2 id="engineHeading">1. Airport route engine</h2><p>Choose origin and destination and calculate a candidate route in the established engineering console.</p></div>
+      <iframe id="engine" src="engine.html" title="Existing AccessibleWay airport route engineering console"></iframe>
+      <div class="inside">
+        <div class="tag">Current airport route</div>
+        <div id="routeMessage" class="readout" role="status" aria-live="polite">Waiting for the airport engine. If opened outside the demo repository, engine.html must be beside this page.</div>
+        <div class="kpis"><div class="kpi"><span>Waypoints / manual simulated progress</span><strong id="routeStep">No route selected</strong></div><div class="kpi"><span>Floor / candidate vertical transitions</span><strong id="routeFloor">Unverified</strong></div></div>
+        <div class="controls"><button id="nextStep" type="button" disabled>Next simulated waypoint</button><button id="resetStep" class="secondary" type="button" disabled>Reset simulated position</button><button id="refreshRoute" class="secondary" type="button">Refresh route state</button></div>
+      </div>
+    </section>
+    <div>
+      <section class="panel" aria-labelledby="evidenceHeading">
+        <div class="head"><h2 id="evidenceHeading">2. Import motion evidence</h2><p>Use a recording or analysis export from the independent <a href="https://gordonhewitt.github.io/accessibleway-sensor-test/" target="_blank" rel="noopener noreferrer">0.7.3 sensor lab</a>.</p></div>
+        <div class="inside">
+          <label class="fileLabel" for="evidenceFile">Local AccessibleWay JSON file</label>
+          <input id="evidenceFile" type="file" accept=".json,application/json" aria-describedby="privacyNotice">
+          <p id="privacyNotice" class="muted">Files are processed locally in your browser. No recording is sent to a server. Do not use identifiable or confidential recordings in a public demo.</p>
+          <button id="loadSample" type="button" class="secondary">Load repository's synthetic sample</button>
+          <div id="evidenceStatus" class="readout" role="status" aria-live="polite">No evidence loaded. Supported: raw <code>events</code> recording or 0.7.3 <code>experimental_motion_evidence</code> report.</div>
+          <div class="kpis"><div class="kpi"><span>Sensor observations</span><strong id="sampleCount">—</strong></div><div class="kpi"><span>Observation duration</span><strong id="duration">—</strong></div></div>
+          <label class="timeline-label" for="windowIndex">Evidence timeline — NOT route position</label>
+          <div id="windowBars" class="windows" role="group" aria-label="Motion evidence overview by time window"></div>
+          <div class="legend" aria-hidden="true"><span><i class="dot stationary"></i>Stationary</span><span><i class="dot moving-like"></i>Moving-like</span><span><i class="dot turning-like"></i>Turning-like</span><span><i class="dot uncertain"></i>Uncertain</span></div>
+          <input type="range" id="windowIndex" min="0" max="0" value="0" disabled>
+          <div id="windowInfo" class="readout" aria-live="polite">No motion window selected.</div>
+          <div class="controls"><button type="button" id="previousWindow" class="secondary" disabled>Previous window</button><button type="button" id="nextWindow" class="secondary" disabled>Next window</button><button type="button" id="playWindows" class="secondary" disabled>Play evidence timeline</button></div>
+        </div>
+      </section>
+      <section class="panel" style="margin-top:15px" aria-labelledby="associationHeading">
+        <div class="head"><h2 id="associationHeading">3. Associate with the selected route</h2><p>Explicitly link a motion-evidence dataset to an airport route <em>scenario</em>, not to a measured passenger location.</p></div>
+        <div class="inside">
+          <p id="associationStatus" class="readout" role="status" aria-live="polite">Calculate a route and load a recording or analysis report first.</p>
+          <div class="controls"><button id="associate" type="button" disabled>Associate scenario evidence</button><button id="download" type="button" class="secondary" disabled>Export integration JSON</button><button id="clearEvidence" type="button" class="secondary" disabled>Clear evidence</button></div>
+          <details><summary>What this integration does — and does not do</summary>
+          <p>The original airport engine remains responsible for route computation and manual simulated waypoint progress. The sensor lab supplies variability, turning-like and stationary windows on a separate timeline. Associating the two records the operator's scenario choice only. It never advances the route from sensor observations, converts airport map units to metres or calculates probabilistic positioning confidence. A change of route invalidates the previous association.</p></details>
+        </div>
+      </section>
+      <section class="panel" style="margin-top:15px" aria-labelledby="experienceHeading">
+        <div class="head"><h2 id="experienceHeading">4. Existing passenger experience</h2><p>Mirrors the airport engine's route and manually simulated waypoint state. No sensor-derived position marker is introduced.</p></div>
+        <iframe class="preview" id="experience" src="experience.html" title="Existing AccessibleWay passenger experience and wearable preview"></iframe>
+      </section>
+    </div>
+  </div>
+  <footer>AccessibleWay 0.7.3.2 · Local-only, additive integration workbench · The two project repositories remain independent. Prototype, not a certified accessibility solution.</footer>
+</main>
+<script src="aw0732-core.js"></script>
+<script>
+(function() {
+'use strict';
+const core = window.AW0732;
+const el = id => document.getElementById(id);
+const engine = el('engine'), experience = el('experience');
+const targetOrigin = location.protocol === 'file:' ? '*' : location.origin;
+let rawRoute = null, route = null, evidence = null, association = null;
+let windowCursor = 0, timelineTimer = null;
+const setText = (id, value) => {el(id).textContent = value;};
+const fmt = n => Number.isFinite(n) ? n.toFixed(2) : 'n/a';
+const hasRoute = () => !!(route && route.active);
+function sendEngine(action) {
+  if (engine.contentWindow) engine.contentWindow.postMessage({source: 'aw067-host', type: 'AW_ACTION', action}, targetOrigin);
+}
+function askEngine() {
+  if (engine.contentWindow) engine.contentWindow.postMessage({source: 'aw067-host', type: 'AW_REQUEST_STATE'}, targetOrigin);
+}
+function refreshUI(note) {
+  if (hasRoute()) {
+    setText('routeMessage', (route.start || 'Airport origin') + ' → ' + (route.destination || route.destinationName || 'Selected destination') + '\n' +
+      (route.guidance || 'Candidate route active.') + '\nAll airport route connections and accessibility attributes are UNVERIFIED.');
+    setText('routeStep', (route.index + 1) + ' of ' + route.points.length + ' (manual simulation)');
+    setText('routeFloor', 'Level ' + route.currentFloor + ' / ' + route.transitions + ' candidate transitions');
+  } else {
+    setText('routeMessage', 'No active airport route. Calculate a candidate route in the left-hand engineering console.');
+    setText('routeStep', 'No route selected'); setText('routeFloor', 'Unverified');
+  }
+  el('nextStep').disabled = !hasRoute() || route.index >= route.points.length - 1;
+  el('resetStep').disabled = !hasRoute();
+  setText('sampleCount', evidence ? evidence.sensorSamples.toLocaleString() : '—');
+  setText('duration', evidence ? fmt(evidence.durationSeconds) + ' s' : '—');
+  el('associate').disabled = !hasRoute() || !evidence;
+  el('download').disabled = !association;
+  el('clearEvidence').disabled = !evidence;
+  el('previousWindow').disabled = !evidence || windowCursor === 0;
+  el('nextWindow').disabled = !evidence || windowCursor >= evidence.windows.length - 1;
+  el('playWindows').disabled = !evidence || evidence.windows.length < 2;
+  el('windowIndex').disabled = !evidence || evidence.windows.length < 2;
+  if (association) setText('associationStatus', 'Scenario association active · route fingerprint ' + association.airportRoute.routeFingerprint + '.\n' +
+      'This does NOT establish spatial or temporal alignment, route adherence, absolute position or confidence.');
+  else if (note) setText('associationStatus', note);
+  else if (hasRoute() && evidence) setText('associationStatus', 'Route and motion evidence are both available. Select Associate scenario evidence to link them for review.');
+  else setText('associationStatus', 'Calculate a candidate airport route and load motion evidence first.');
+}
+function resetAssociation(message) {association = null; refreshUI(message);}
+function requestTimelineStop() {
+  if (timelineTimer !== null) {window.clearInterval(timelineTimer); timelineTimer = null;}
+  el('playWindows').textContent = 'Play evidence timeline';
+}
+function selectWindow(index) {
+  if (!evidence) return;
+  windowCursor = Math.max(0, Math.min(evidence.windows.length - 1, index));
+  const w = evidence.windows[windowCursor];
+  el('windowIndex').value = String(windowCursor);
+  setText('windowInfo', 'Time ' + fmt(w.startMs / 1000) + '–' + fmt(w.endMs / 1000) + ' s · ' + w.state + '\n' +
+    'Acceleration standard deviation: ' + fmt(w.accelerationSd) + ' m/s² · Relative heading change: ' +
+    (w.relativeHeadingChangeDeg === null ? 'unavailable' : fmt(w.relativeHeadingChangeDeg) + '°') + '\n' +
+    'Window ' + (windowCursor + 1) + ' / ' + evidence.windows.length + ' · NOT a route waypoint or estimated position.');
+  [...el('windowBars').children].forEach(btn => btn.setAttribute('aria-current', String(Number(btn.dataset.index) === windowCursor)));
+  refreshUI();
+}
+function buildBars() {
+  const bars = el('windowBars'); bars.replaceChildren();
+  if (!evidence) {setText('windowInfo', 'No motion window selected.');return;}
+  const n = evidence.windows.length;
+  el('windowIndex').max = String(n - 1);
+  const step = Math.max(1, Math.ceil(n / 100));
+  for (let i = 0; i < n; i += step) {
+    const w = evidence.windows[i];
+    const b = document.createElement('button'); b.type = 'button';b.className = w.state;
+    b.dataset.index = String(i);
+    b.style.height = Math.max(12, Math.min(100, 25 + w.accelerationSd * 30)) + '%';
+    b.setAttribute('aria-label', 'Evidence window ' + (i + 1) + ', ' + w.state + ', ' + fmt(w.startMs / 1000) + ' seconds');
+    b.setAttribute('aria-current', 'false');
+    b.addEventListener('click', () => {requestTimelineStop();selectWindow(i);});
+    bars.appendChild(b);
+  }
+  selectWindow(0);
+}
+function clear() {
+  requestTimelineStop(); evidence = null; association = null; windowCursor = 0;
+  el('evidenceFile').value = '';
+  el('windowIndex').value = '0';el('windowIndex').max = '0';
+  el('windowBars').replaceChildren();
+  setText('evidenceStatus', 'Evidence cleared from this page. No observations are stored remotely.');
+  setText('windowInfo', 'No motion window selected.'); refreshUI();
+}
+function setEvidence(data, filename) {
+  requestTimelineStop();
+  evidence = core.normalizeEvidence(data, filename);
+  association = null;
+  setText('evidenceStatus', 'Loaded: ' + evidence.label + '\n' + evidence.kind + ' · ' +
+    evidence.windows.length + ' motion windows.\n' + evidence.assumptionWarning);
+  buildBars();refreshUI('New evidence loaded. Associate it with the selected route scenario if appropriate.');
+}
+async function importFile(file) {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) throw Error('Please use a JSON file smaller than 10 MB.');
+  setEvidence(JSON.parse(await file.text()), file.name);
+}
+el('evidenceFile').addEventListener('change', async ev => {
+  try {await importFile(ev.target.files && ev.target.files[0]);}
+  catch (err) {clear();setText('evidenceStatus', 'Could not import evidence: ' + err.message);}
+});
+el('loadSample').addEventListener('click', async () => {
+  try {
+    const response = await fetch('./sample_replay.json', {cache: 'no-store'});
+    if (!response.ok) throw Error('HTTP ' + response.status);
+    const text = await response.text();
+    if (text.length > 10 * 1024 * 1024) throw Error('Sample too large');
+    setEvidence(JSON.parse(text), 'sample_replay.json (synthetic)');
+  } catch (err) {
+    setText('evidenceStatus', 'Could not load the repository sample: ' + err.message + '. Try importing it as a file.');
+  }
+});
+el('clearEvidence').addEventListener('click', clear);
+el('windowIndex').addEventListener('input', ev => {requestTimelineStop();selectWindow(Number(ev.target.value));});
+el('previousWindow').addEventListener('click', () => {requestTimelineStop();selectWindow(windowCursor - 1);});
+el('nextWindow').addEventListener('click', () => {requestTimelineStop();selectWindow(windowCursor + 1);});
+el('playWindows').addEventListener('click', () => {
+  if (timelineTimer !== null) {requestTimelineStop();return;}
+  if (!evidence) return;
+  if (windowCursor >= evidence.windows.length - 1) selectWindow(0);
+  el('playWindows').textContent = 'Pause evidence timeline';
+  timelineTimer = window.setInterval(() => {
+    if (!evidence || windowCursor >= evidence.windows.length - 1) {requestTimelineStop();return;}
+    selectWindow(windowCursor + 1);
+  }, 900);
+});
+el('associate').addEventListener('click', () => {
+  try {association = core.associate(route, evidence);refreshUI();}
+  catch (err) {resetAssociation('Association unavailable: ' + err.message);}
+});
+el('download').addEventListener('click', () => {
+  if (!association) return;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(association, null, 2)], {type: 'application/json'}));
+  const a = document.createElement('a');a.href = url;a.download = 'AW_0.7.3.2_route_evidence.json';
+  document.body.appendChild(a); a.click();a.remove();window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+el('nextStep').addEventListener('click', () => sendEngine('advance'));
+el('resetStep').addEventListener('click', () => sendEngine('resetPosition'));
+el('refreshRoute').addEventListener('click', askEngine);
+window.addEventListener('message', ev => {
+  // Accept messages only from the two iframes that this page itself created.
+  if (ev.source !== engine.contentWindow && ev.source !== experience.contentWindow) return;
+  if (location.protocol !== 'file:' && ev.origin !== location.origin) return;
+  const m = ev.data;
+  if (!m || typeof m !== 'object') return;
+  if (ev.source === engine.contentWindow && m.type === 'AW_NAV_STATE' && m.source === 'airport-engine-064') {
+    let newRoute;
+    try {newRoute = core.normalizeRouteMessage(m);} catch (err) {
+      resetAssociation('Route message rejected: ' + err.message);return;
+    }
+    const changed = !route || route.fingerprint !== newRoute.fingerprint;
+    route = newRoute;rawRoute = m;
+    if (changed && association) association = null;
+    refreshUI(changed ? 'Airport route changed. Any earlier evidence association must be reviewed and renewed.' : null);
+    if (experience.contentWindow) experience.contentWindow.postMessage(m, targetOrigin);
+  }
+  if (ev.source === experience.contentWindow && m.type === 'AW_REQUEST_STATE') {
+    if (rawRoute) experience.contentWindow.postMessage(rawRoute, targetOrigin);
+    else askEngine();
+  }
+  if (ev.source === experience.contentWindow && m.type === 'AW_ACTION' &&
+      ['advance','resetPosition'].includes(m.action)) sendEngine(m.action);
+});
+engine.addEventListener('load', askEngine);
+experience.addEventListener('load', () => {
+  if (rawRoute) experience.contentWindow.postMessage(rawRoute, targetOrigin);
+  else askEngine();
+});
+refreshUI();
+})();
+</script>
+</body>
+</html>
