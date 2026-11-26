@@ -55,17 +55,38 @@
     return Math.sqrt(mean(a.map(x => (x - m) ** 2)));
   }
   const headingDifference = (a, b) => ((b - a + 540) % 360) - 180;
+  // Recordings arrive at different sensor rates. The repository's synthetic sample
+  // uses 520 ms intervals (roughly 2 Hz), so a fixed 2-second / 8-reading window
+  // previously rejected every otherwise valid part of that sample.
+  function observedIntervalMs(samples) {
+    const gaps = [];
+    for (let i = 1; i < samples.length; i++) {
+      const delta = samples[i].t - samples[i - 1].t;
+      if (finite(delta) && delta > 0) gaps.push(delta);
+    }
+    if (!gaps.length) return null;
+    gaps.sort((a, b) => a - b);
+    return gaps[Math.floor(gaps.length / 2)];
+  }
+  function windowLengthMs(samples) {
+    const interval = observedIntervalMs(samples);
+    if (!finite(interval)) throw Error('Recording contains no advancing sensor timestamps.');
+    // Keep >=8 readings per window whenever the observed rate allows it.
+    // Never label these windows as fixed two-second windows.
+    return clamp(Math.ceil(interval * 8 / 100) * 100, 2000, 15000);
+  }
   function windowsForSamples(samples) {
     if (samples.length < 12) throw Error('At least 12 valid sensor observations are required.');
     const first = samples[0].t, end = samples[samples.length - 1].t;
     if (end - first > MAX_WINDOWS * 2000)
-      throw Error('Recording spans too many two-second windows. Split the recording.');
+      throw Error('Recording time span is too long. Split the recording.');
+    const duration = windowLengthMs(samples);
     const output = [];
     let left = 0, right = 0;
-    for (let at = first; at + 1500 <= end; at += 2000) {
+    for (let at = first; at + 1500 <= end; at += duration) {
       while (left < samples.length && samples[left].t < at) left++;
       right = Math.max(right, left);
-      while (right < samples.length && samples[right].t < at + 2000) right++;
+      while (right < samples.length && samples[right].t < at + duration) right++;
       const subset = samples.slice(left, right);
       const magnitudes = subset.map(x => Math.hypot(x.acc.x, x.acc.y, x.acc.z));
       if (magnitudes.length < 8) continue;
@@ -76,7 +97,7 @@
       if (variation < 0.25 && (!finite(turn) || Math.abs(turn) < 8)) state = 'stationary';
       else if (finite(turn) && Math.abs(turn) > 25) state = 'turning-like';
       else if (variation > 0.75) state = 'moving-like';
-      output.push({startMs: at - first, endMs: Math.min(at + 2000, end) - first,
+      output.push({startMs: at - first, endMs: Math.min(at + duration, end) - first,
         samples: subset.length, accelerationSd: variation,
         relativeHeadingChangeDeg: turn, state});
     }
@@ -123,13 +144,19 @@
       heading: finite(e.heading) ? e.heading : null
     })).sort((a, b) => a.t - b.t);
     if (samples.length < 12) throw Error('Too few valid, timestamped sensor observations.');
+    const intervalMs = observedIntervalMs(samples);
     const windows = windowsForSamples(samples);
-    if (!windows.length) throw Error('No analysable two-second windows. Provide a longer recording.');
+    if (!windows.length) throw Error('No analysable motion windows: recording is too short or too sparse for eight readings per window.');
+    const analysisWindowMs = windowLengthMs(samples);
+    const isSynthetic = /\bsynthetic\b/i.test(safeString(input.description, 600));
     return {kind: 'raw recording (analysed locally)', label,
       originFormat: safeString(input.format, 80), windows, windowCounts: counts(windows),
       sensorSamples: samples.length,
+      analysisWindowMs,
       durationSeconds: Math.max(0, (samples[samples.length - 1].t - samples[0].t) / 1000),
-      assumptionWarning: 'Variability and turn-like classifications are heuristics, not distances, route adherence or positioning.'};
+      assumptionWarning: (isSynthetic ? 'Synthetic replay: NOT measured passenger observations. ' : '') +
+        'Observation interval approximately ' + Math.round(intervalMs) + ' ms; adaptive analysis windows ' +
+        (analysisWindowMs / 1000).toFixed(2) + ' s. Motion labels are uncalibrated heuristics, not measured distance, route adherence or positioning.'};
   }
   function associate(route, evidence) {
     if (!route || !route.active || !route.fingerprint || route.points.length < 2)
